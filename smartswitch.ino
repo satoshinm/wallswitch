@@ -6,11 +6,22 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 
+/* edit to your network:
+const char* ssid = "..";
+const char* password = "...";
+const char* udp_recipient = "192.168.0.111";
+const int udp_port = 8266;
+*/
 #include "creds.h"
 
 ESP8266WebServer server(80);
 
 #define SWITCH_PIN D4
+#define INPUT_ON_PACKET  "\xe1"
+#define INPUT_OFF_PACKET "\xe0"
+
+static int last_input = 0;
+static int input = 0;
 
 void handleRoot() {
   String html = "<!DOCTYPE html>\n"
@@ -21,6 +32,7 @@ void handleRoot() {
 "<meta charset=\"UTF-8\">\n"
 "<body>\n"
 "<h1>smartswitch</h1>\n"
+"<p>Switch input: " + String(input) + "\n" +
 "</body>\n"
 "</html>\n";
 
@@ -69,15 +81,23 @@ void setup() {
   pinMode(SWITCH_PIN, INPUT);
 }
 
-void loop() {
-  static int last_input;
+static WiFiUDP udp;
 
+void loop() {
   server.handleClient();
 
-  int input = digitalRead(SWITCH_PIN);
+  input = digitalRead(SWITCH_PIN);
 
   if (input != last_input) {
     Serial.println("Input changed: " + String(last_input) + " -> " + String(input));
+
+    udp.beginPacket(udp_recipient, udp_port);
+    if (input) {
+      udp.write(INPUT_ON_PACKET, sizeof(INPUT_ON_PACKET) - 1);
+    } else {
+      udp.write(INPUT_OFF_PACKET, sizeof(INPUT_OFF_PACKET) - 1);
+    }
+    udp.endPacket();
   }
 
   last_input = input;
