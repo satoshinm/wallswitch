@@ -10,6 +10,8 @@
 
 ESP8266WebServer server(80);
 
+#define SWITCH_PIN D4
+
 void handleRoot() {
   String html = "<!DOCTYPE html>\n"
 "<html>\n"
@@ -63,8 +65,20 @@ void setup() {
 
   server.begin();
   Serial.println("HTTP server started");
+
+  pinMode(SWITCH_PIN, INPUT);
 }
 
 void loop() {
+  static int last_input;
+
   server.handleClient();
+
+  int input = digitalRead(SWITCH_PIN);
+
+  if (input != last_input) {
+    Serial.println("Input changed: " + String(last_input) + " -> " + String(input));
+  }
+
+  last_input = input;
 }
