@@ -16,13 +16,16 @@ const int udp_port = 8266;
 
 ESP8266WebServer server(80);
 
-#define SWITCH_PIN D4
 #define INPUT_ON_PACKET  "\xe1"
 #define INPUT_OFF_PACKET "\xe0"
 
+#define OPTOCOUPLER_PIN D2
+
+static int analog_value = 0;
 static int last_input = 0;
 static int input = 0;
-static int analog_value = 0;
+
+static const int vdiv = (47.0 + 10.0) / 10;
 
 void handleRoot() {
   String html = "<!DOCTYPE html>\n"
@@ -33,8 +36,8 @@ void handleRoot() {
 "<meta charset=\"UTF-8\">\n"
 "<body>\n"
 "<h1>wallswitch</h1>\n"
-"<p>Analog input: " + String(analog_value) + "\n" +
-"<p>Switch input: " + String(input) + "\n" +
+"<p>Optocoupler: " + String(!input ? "ON" : "off") + "\n" +
+"<p>Voltage: " + String(analog_value / 1024.0 * vdiv) + " V" +
 "</body>\n"
 "</html>\n";
 
@@ -69,6 +72,8 @@ void setup() {
   Serial.println(WiFi.localIP());
   digitalWrite(BUILTIN_LED, 1);
 
+  pinMode(OPTOCOUPLER_PIN, INPUT);
+
   if (MDNS.begin("wallswitch")) {
     Serial.println("MDNS responder started");
   }
@@ -79,8 +84,6 @@ void setup() {
 
   server.begin();
   Serial.println("HTTP server started");
-
-  pinMode(SWITCH_PIN, INPUT);
 }
 
 static WiFiUDP udp;
@@ -89,21 +92,23 @@ void loop() {
   server.handleClient();
 
   if (millis() % 50 == 0) {
-    analog_value = analogRead(A0);
+      analog_value = analogRead(A0);
   }
 
-  input = digitalRead(SWITCH_PIN);
+  input = digitalRead(OPTOCOUPLER_PIN);
 
   if (input != last_input) {
     Serial.println("Input changed: " + String(last_input) + " -> " + String(input));
 
+    digitalWrite(BUILTIN_LED, 0);
     udp.beginPacket(udp_recipient, udp_port);
-    if (input) {
+    if (!input) { // active low
       udp.write(INPUT_ON_PACKET, sizeof(INPUT_ON_PACKET) - 1);
     } else {
       udp.write(INPUT_OFF_PACKET, sizeof(INPUT_OFF_PACKET) - 1);
     }
     udp.endPacket();
+    digitalWrite(BUILTIN_LED, 1);
   }
 
   last_input = input;
