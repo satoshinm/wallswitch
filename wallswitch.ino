@@ -16,8 +16,8 @@ const int udp_port = 8266;
 
 ESP8266WebServer server(80);
 
-#define INPUT_ON_PACKET  "\xe1"
-#define INPUT_OFF_PACKET "\xe0"
+#define INPUT_ON_PACKET  "\x00"
+#define INPUT_OFF_PACKET "\xff"
 
 #define OPTOCOUPLER_PIN D2
 
