@@ -18,6 +18,10 @@ ESP8266WebServer server(80);
 
 #define INPUT_ON_PACKET  "\x00"
 #define INPUT_OFF_PACKET "\xff"
+#define INPUT_TOGGLE_PACKET "\x80"
+
+// if defined, always toggle, otherwise send on/off
+#define TOGGLE
 
 #define OPTOCOUPLER_PIN D2
 
@@ -102,11 +106,15 @@ void loop() {
 
     digitalWrite(BUILTIN_LED, 0);
     udp.beginPacket(udp_recipient, udp_port);
+#ifdef TOGGLE
+    udp.write(INPUT_TOGGLE_PACKET, sizeof(INPUT_TOGGLE_PACKET) - 1);
+#else
     if (!input) { // active low
       udp.write(INPUT_ON_PACKET, sizeof(INPUT_ON_PACKET) - 1);
     } else {
       udp.write(INPUT_OFF_PACKET, sizeof(INPUT_OFF_PACKET) - 1);
     }
+#endif
     udp.endPacket();
     digitalWrite(BUILTIN_LED, 1);
   }
