@@ -58,6 +58,7 @@ void setup() {
   pinMode(BUILTIN_LED, OUTPUT);
   digitalWrite(BUILTIN_LED, 0);
   Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   Serial.println("\nWaiting to connect to Wi-Fi...");
 
